@@ -10,17 +10,17 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    --bg: #0c0e10;
-    --surface: #15181b;
-    --surface2: #1b1f23;
-    --border: #272c30;
-    --ink: #eceeef;
-    --muted: #8b9197;
-    --faint: #5b6166;
-    --gold: #c9a227;
-    --gold-dim: #8a7320;
-    --rust: #c1502e;
-    --rust-dim: #7d3a23;
+    --bg: #1c2128;
+    --surface: #242a32;
+    --surface2: #2c333d;
+    --border: #3a4250;
+    --ink: #f5f6f7;
+    --muted: #aab2bd;
+    --faint: #7a8290;
+    --gold: #e6b93a;
+    --gold-dim: #b8932a;
+    --rust: #e2643a;
+    --rust-dim: #a8492a;
     background: var(--bg);
     color: var(--ink);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -129,20 +129,45 @@
   .bt-addbtn:hover { color: var(--gold); border-color: var(--gold-dim); }
 
   .bt-histempty { color: var(--faint); font-size: 13px; text-align: center; padding: 40px 0; }
+
+  .bt-histgroup { border-bottom: 1px solid var(--border); }
   .bt-histrow {
-    display: grid; grid-template-columns: 110px 1fr 90px 90px 90px; gap: 10px;
-    align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+    display: grid; grid-template-columns: 16px 110px 1fr 90px 90px 90px; gap: 10px;
+    align-items: center; padding: 10px 0; font-size: 13px;
   }
-  .bt-histrow.head { color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  .bt-histrow.head { color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+  .bt-histrow.month-row { cursor: pointer; border-radius: 6px; transition: background .15s ease; }
+  .bt-histrow.month-row:hover { background: var(--surface); }
   .bt-histrow .mono { font-family: 'IBM Plex Mono', monospace; text-align: right; }
   .bt-histbar { background: var(--border); height: 8px; border-radius: 4px; overflow: hidden; position: relative; }
   .bt-histbar-fill { height: 100%; border-radius: 4px; }
+  .bt-histchevron { display: flex; align-items: center; justify-content: center; color: var(--faint); transition: transform .15s ease; }
+  .bt-histchevron.open { transform: rotate(90deg); color: var(--gold); }
+
+  .bt-histdetail {
+    padding: 4px 0 14px 26px;
+    margin-bottom: 4px;
+  }
+  .bt-histdetailrow {
+    display: grid; grid-template-columns: 1fr 90px 90px 80px; gap: 10px;
+    align-items: center; padding: 7px 0; font-size: 12px; color: var(--muted);
+  }
+  .bt-histdetailrow.head { color: var(--faint); font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; }
+  .bt-histdetailrow .mono { font-family: 'IBM Plex Mono', monospace; text-align: right; }
+  .bt-histinput {
+    width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--ink);
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 5px 7px;
+    border-radius: 5px; text-align: right;
+  }
+  .bt-histinput:focus { outline: none; border-color: var(--gold-dim); }
+  .bt-histeditnote { font-size: 10px; color: var(--faint); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.6px; }
 
   @media (max-width: 480px) {
     .bt-title { font-size: 22px; }
     .bt-row, .bt-totalrow { grid-template-columns: 1fr 84px; }
-    .bt-histrow { grid-template-columns: 80px 1fr 70px; }
-    .bt-histrow .mono:last-child { display: none; }
+    .bt-histrow { grid-template-columns: 14px 70px 1fr 70px; }
+    .bt-histrow .mono:nth-last-child(-n+2) { display: none; }
+    .bt-histdetailrow { grid-template-columns: 1fr 70px 70px 60px; }
   }
 </style>
 </head>
@@ -167,12 +192,12 @@
   var ICONS = {
     chevronLeft: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>',
     chevronRight: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>',
+    chevronDown: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>',
     plus: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
     trash: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>'
   };
 
   var DEFAULT_CATEGORIES = [
-    { id: "rent", name: "Rent", target: 1770 },
     { id: "grocery", name: "Retail and Grocery", target: 650 },
     { id: "restaurants", name: "Restaurants", target: 650 },
     { id: "household", name: "Personal and Household", target: 320 },
@@ -192,8 +217,7 @@
     entertainment: [59.41,  0,      0,      51.54,  90.57,  315.69, 71.96,  12.08],
     restaurants:   [331.96, 618.69, 548.46, 370.22, 900.16, 1198.92,694.24, 932.66],
     health:        [102.35, 31.45,  78.67,  131.41, 144.74, 52.82,  41.21,  112.57],
-    fx:            [0,      236.46, 840.99, 670.48, 31.90,  31.52,  270.57, 31.83],
-    rent:          [1765,   1765,   1765,   1765,   1765,   1765,   1765,   1809]
+    fx:            [0,      236.46, 840.99, 670.48, 31.90,  31.52,  270.57, 31.83]
   };
 
   var MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -264,7 +288,8 @@
     categories: [],
     tab: "track",
     monthKey: currentMonthKey(),
-    entries: {}
+    entries: {},
+    expandedMonth: null
   };
 
   var savedTimer = null;
@@ -306,17 +331,34 @@
     renderBody();
   }
 
-  function computeHistory() {
+  function getCategoryName(id) {
+    var cat = state.categories.find(function (c) { return c.id === id; });
+    return cat ? cat.name : id;
+  }
+
+  function categoryOrderIndex(id) {
+    var idx = state.categories.findIndex(function (c) { return c.id === id; });
+    return idx === -1 ? 9999 : idx;
+  }
+
+  function getMonthData(key) {
+    return loadJSON("ledger:month:" + key, { entries: {}, targets: {} });
+  }
+
+  function saveMonthData(key, data) {
+    saveJSON("ledger:month:" + key, data);
+  }
+
+  function computeHistorySummaries() {
     return listMonthKeys().map(function (k) {
-      var data = loadJSON("ledger:month:" + k, null);
-      if (!data) return null;
+      var data = getMonthData(k);
       var targets = data.targets || {};
       var ents = data.entries || {};
       var targetTotal = 0, actualTotal = 0;
       Object.keys(targets).forEach(function (id) { targetTotal += Number(targets[id]) || 0; });
       Object.keys(ents).forEach(function (id) { actualTotal += Number(ents[id]) || 0; });
       return { key: k, targetTotal: targetTotal, actualTotal: actualTotal };
-    }).filter(Boolean).sort(function (a, b) { return a.key < b.key ? 1 : -1; });
+    }).sort(function (a, b) { return a.key < b.key ? 1 : -1; });
   }
 
   function renderTabs() {
@@ -381,20 +423,53 @@
     return html;
   }
 
+  function renderHistoryDetail(key) {
+    var data = getMonthData(key);
+    var targets = data.targets || {};
+    var ents = data.entries || {};
+    var ids = {};
+    Object.keys(targets).forEach(function (id) { ids[id] = true; });
+    Object.keys(ents).forEach(function (id) { ids[id] = true; });
+    var idList = Object.keys(ids).sort(function (a, b) { return categoryOrderIndex(a) - categoryOrderIndex(b); });
+
+    var html = '<div class="bt-histdetail" data-month="' + key + '">';
+    html += '<div class="bt-histdetailrow head"><div>Category</div><div class="mono">Target</div><div class="mono">Actual</div><div class="mono">Diff</div></div>';
+    idList.forEach(function (id) {
+      var target = Number(targets[id]) || 0;
+      var actual = Number(ents[id]) || 0;
+      var d = target - actual;
+      var under = d >= 0;
+      html += '<div class="bt-histdetailrow">';
+      html += '<div>' + escapeHtml(getCategoryName(id)) + '</div>';
+      html += '<div><input class="bt-histinput hist-target" data-month="' + key + '" data-id="' + id + '" type="number" value="' + target + '" /></div>';
+      html += '<div><input class="bt-histinput hist-actual" data-month="' + key + '" data-id="' + id + '" type="number" value="' + actual + '" /></div>';
+      html += '<div class="mono" style="color:' + (under ? 'var(--gold)' : 'var(--rust)') + '">' + (under ? '+' : '-') + '$' + fmt(Math.abs(d)) + '</div>';
+      html += '</div>';
+    });
+    html += '<div class="bt-histeditnote">Edits save automatically</div>';
+    html += '</div>';
+    return html;
+  }
+
   function renderHistory() {
-    var rows = computeHistory();
+    var rows = computeHistorySummaries();
     if (rows.length === 0) return '<div class="bt-histempty">No months logged yet.</div>';
-    var html = '<div class="bt-histrow head"><div>Month</div><div></div><div class="mono">Target</div><div class="mono">Actual</div><div class="mono">Diff</div></div>';
+    var html = '<div class="bt-histrow head"><div></div><div>Month</div><div></div><div class="mono">Target</div><div class="mono">Actual</div><div class="mono">Diff</div></div>';
     rows.forEach(function (h) {
       var d = h.targetTotal - h.actualTotal;
       var under = d >= 0;
       var pct = h.targetTotal > 0 ? Math.min((h.actualTotal / h.targetTotal) * 100, 100) : 0;
-      html += '<div class="bt-histrow">';
+      var isOpen = state.expandedMonth === h.key;
+      html += '<div class="bt-histgroup">';
+      html += '<div class="bt-histrow month-row" data-key="' + h.key + '">';
+      html += '<div class="bt-histchevron' + (isOpen ? ' open' : '') + '">' + ICONS.chevronDown + '</div>';
       html += '<div>' + monthLabel(h.key) + '</div>';
       html += '<div class="bt-histbar"><div class="bt-histbar-fill" style="width:' + pct + '%;background:' + (under ? 'var(--gold-dim)' : 'var(--rust)') + '"></div></div>';
       html += '<div class="mono">$' + fmt(h.targetTotal) + '</div>';
       html += '<div class="mono">$' + fmt(h.actualTotal) + '</div>';
       html += '<div class="mono" style="color:' + (under ? 'var(--gold)' : 'var(--rust)') + '">' + (under ? '+' : '-') + '$' + fmt(Math.abs(d)) + '</div>';
+      html += '</div>';
+      if (isOpen) html += renderHistoryDetail(h.key);
       html += '</div>';
     });
     return html;
@@ -455,6 +530,38 @@
       });
       var addBtn = document.getElementById("addCategory");
       if (addBtn) addBtn.addEventListener("click", addCategory);
+    } else if (state.tab === "history") {
+      document.querySelectorAll(".month-row").forEach(function (row) {
+        row.addEventListener("click", function () {
+          var key = row.dataset.key;
+          state.expandedMonth = state.expandedMonth === key ? null : key;
+          renderBody();
+        });
+      });
+      document.querySelectorAll(".hist-target").forEach(function (input) {
+        input.addEventListener("click", function (e) { e.stopPropagation(); });
+        input.addEventListener("blur", function () {
+          var key = input.dataset.month, id = input.dataset.id;
+          var data = getMonthData(key);
+          data.targets = data.targets || {};
+          data.targets[id] = input.value;
+          saveMonthData(key, data);
+          pulseSaved();
+          renderBody();
+        });
+      });
+      document.querySelectorAll(".hist-actual").forEach(function (input) {
+        input.addEventListener("click", function (e) { e.stopPropagation(); });
+        input.addEventListener("blur", function () {
+          var key = input.dataset.month, id = input.dataset.id;
+          var data = getMonthData(key);
+          data.entries = data.entries || {};
+          data.entries[id] = input.value;
+          saveMonthData(key, data);
+          pulseSaved();
+          renderBody();
+        });
+      });
     }
   }
 
