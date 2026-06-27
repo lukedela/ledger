@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LEDGER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    --bg: #0c0e10;
+    --surface: #15181b;
+    --surface2: #1b1f23;
+    --border: #272c30;
+    --ink: #eceeef;
+    --muted: #8b9197;
+    --faint: #5b6166;
+    --gold: #c9a227;
+    --gold-dim: #8a7320;
+    --rust: #c1502e;
+    --rust-dim: #7d3a23;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    padding: 28px 20px 60px;
+  }
+
+  .bt-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    max-width: 720px;
+    margin: 0 auto 22px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+  }
+  .bt-title { font-family: 'Source Serif 4', Georgia, serif; font-size: 26px; letter-spacing: 0.3px; }
+  .bt-sub { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: 1.6px; margin-top: 4px; }
+  .bt-saved {
+    font-size: 11px; color: var(--gold); opacity: 0;
+    transition: opacity .25s ease; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .bt-saved.show { opacity: 1; }
+
+  .bt-tabs { display: flex; gap: 4px; max-width: 720px; margin: 0 auto 24px; }
+  .bt-tab {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    font-size: 13px; padding: 8px 16px; border-radius: 6px; cursor: pointer;
+    font-family: inherit; transition: all .15s ease;
+  }
+  .bt-tab:hover { color: var(--ink); border-color: var(--faint); }
+  .bt-tab.active { background: var(--surface2); color: var(--gold); border-color: var(--gold-dim); }
+
+  .bt-body { max-width: 720px; margin: 0 auto; }
+
+  .bt-monthnav { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 22px; }
+  .bt-monthnav button {
+    background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+    width: 30px; height: 30px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .bt-monthnav button:hover { color: var(--ink); border-color: var(--faint); }
+  .bt-monthnav .bt-monthname { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; min-width: 180px; text-align: center; }
+
+  .bt-stampwrap { display: flex; justify-content: center; margin: 4px 0 26px; min-height: 64px; align-items: center; }
+  .bt-stamp {
+    font-family: 'Source Serif 4', Georgia, serif; font-style: italic; font-size: 19px;
+    letter-spacing: 1px; padding: 9px 22px; border: 3px double var(--gold-dim);
+    color: var(--gold); transform: rotate(-4deg); border-radius: 3px; text-align: center;
+  }
+  .bt-stamp.over { border-color: var(--rust-dim); color: var(--rust); }
+  .bt-stamp .amt { font-style: normal; font-family: 'IBM Plex Mono', monospace; }
+
+  .bt-row {
+    display: grid; grid-template-columns: 1fr 100px; gap: 14px; align-items: center;
+    padding: 11px 0; border-bottom: 1px solid var(--border);
+  }
+  .bt-row:last-of-type { border-bottom: none; }
+  .bt-catname { font-size: 14px; color: var(--ink); }
+  .bt-catmeta { font-size: 11px; color: var(--faint); margin-top: 2px; font-family: 'IBM Plex Mono', monospace; }
+
+  .bt-inputwrap { position: relative; }
+  .bt-inputwrap .cur {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    color: var(--faint); font-size: 13px; font-family: 'IBM Plex Mono', monospace;
+  }
+  .bt-input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--ink);
+    font-family: 'IBM Plex Mono', monospace; font-size: 14px; padding: 7px 10px 7px 22px;
+    border-radius: 6px; text-align: right; transition: border-color .15s ease;
+  }
+  .bt-input:focus { outline: none; border-color: var(--gold-dim); }
+
+  .bt-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .bt-bar-fill { height: 100%; border-radius: 2px; transition: width .25s ease; }
+  .bt-bar-fill.under { background: var(--gold-dim); }
+  .bt-bar-fill.over { background: var(--rust); }
+
+  .bt-totalrow {
+    display: grid; grid-template-columns: 1fr 100px; gap: 14px; align-items: center;
+    padding-top: 16px; margin-top: 6px; border-top: 1px solid var(--faint);
+  }
+  .bt-totalrow .bt-catname { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; }
+  .bt-totalval { font-family: 'IBM Plex Mono', monospace; text-align: right; font-size: 15px; }
+
+  .bt-targetrow {
+    display: grid; grid-template-columns: 1fr 110px 32px; gap: 10px; align-items: center;
+    padding: 9px 0; border-bottom: 1px solid var(--border);
+  }
+  .bt-targetrow input.name {
+    background: none; border: none; color: var(--ink); font-size: 14px;
+    font-family: inherit; padding: 4px 0; width: 100%;
+  }
+  .bt-targetrow input.name:focus { outline: none; border-bottom: 1px solid var(--gold-dim); }
+  .bt-delbtn {
+    background: none; border: none; color: var(--faint); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .bt-delbtn:hover { color: var(--rust); }
+
+  .bt-addbtn {
+    display: flex; align-items: center; gap: 6px; background: none;
+    border: 1px dashed var(--border); color: var(--muted); font-size: 13px;
+    padding: 9px 14px; border-radius: 6px; cursor: pointer; margin-top: 14px; font-family: inherit;
+  }
+  .bt-addbtn:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  .bt-histempty { color: var(--faint); font-size: 13px; text-align: center; padding: 40px 0; }
+  .bt-histrow {
+    display: grid; grid-template-columns: 110px 1fr 90px 90px 90px; gap: 10px;
+    align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .bt-histrow.head { color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  .bt-histrow .mono { font-family: 'IBM Plex Mono', monospace; text-align: right; }
+  .bt-histbar { background: var(--border); height: 8px; border-radius: 4px; overflow: hidden; position: relative; }
+  .bt-histbar-fill { height: 100%; border-radius: 4px; }
+
+  @media (max-width: 480px) {
+    .bt-title { font-size: 22px; }
+    .bt-row, .bt-totalrow { grid-template-columns: 1fr 84px; }
+    .bt-histrow { grid-template-columns: 80px 1fr 70px; }
+    .bt-histrow .mono:last-child { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="bt-header">
+    <div>
+      <div class="bt-title">LEDGER</div>
+      <div class="bt-sub">monthly budget &middot; targets and actuals</div>
+    </div>
+    <div class="bt-saved" id="savedIndicator">Saved</div>
+  </div>
+
+  <div class="bt-tabs" id="tabs">
+    <button class="bt-tab" data-tab="track">Track</button>
+    <button class="bt-tab" data-tab="targets">Targets</button>
+    <button class="bt-tab" data-tab="history">History</button>
+  </div>
+
+  <div class="bt-body" id="body"></div>
+
+<script>
+  var ICONS = {
+    chevronLeft: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>',
+    chevronRight: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>',
+    plus: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
+    trash: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>'
+  };
+
+  var DEFAULT_CATEGORIES = [
+    { id: "rent", name: "Rent", target: 1770 },
+    { id: "grocery", name: "Retail and Grocery", target: 650 },
+    { id: "restaurants", name: "Restaurants", target: 650 },
+    { id: "household", name: "Personal and Household", target: 320 },
+    { id: "fx", name: "Foreign Currency Transactions", target: 200 },
+    { id: "transport", name: "Transportation", target: 110 },
+    { id: "health", name: "Health and Education", target: 90 },
+    { id: "entertainment", name: "Hotel, Entertainment and Recreation", target: 90 },
+    { id: "professional", name: "Professional and Financial Services", target: 30 }
+  ];
+
+  var HISTORICAL_MONTHS = ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05"];
+  var HISTORICAL_ACTUALS = {
+    household:     [195.20, 431.65, 306.10, 267.32, 298.60, 237.49, 414.41, 489.82],
+    professional:  [0,      39.19,  16.19,  11.19,  161.19, 11.19,  11.19,  11.19],
+    grocery:       [373.09, 668.93, 445.11, 643.61, 781.47, 772.18, 991.11, 736.24],
+    transport:     [0,      185.86, 92.16,  67.54,  34.84,  118.05, 199.49, 233.30],
+    entertainment: [59.41,  0,      0,      51.54,  90.57,  315.69, 71.96,  12.08],
+    restaurants:   [331.96, 618.69, 548.46, 370.22, 900.16, 1198.92,694.24, 932.66],
+    health:        [102.35, 31.45,  78.67,  131.41, 144.74, 52.82,  41.21,  112.57],
+    fx:            [0,      236.46, 840.99, 670.48, 31.90,  31.52,  270.57, 31.83],
+    rent:          [1765,   1765,   1765,   1765,   1765,   1765,   1765,   1809]
+  };
+
+  var MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+  function uid() { return Math.random().toString(36).slice(2, 9); }
+
+  function currentMonthKey() {
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  }
+
+  function monthLabel(key) {
+    var parts = key.split("-");
+    var y = Number(parts[0]), m = Number(parts[1]);
+    return MONTH_NAMES[m - 1] + " " + y;
+  }
+
+  function shiftMonth(key, delta) {
+    var parts = key.split("-");
+    var y = Number(parts[0]), m = Number(parts[1]);
+    var d = new Date(y, m - 1 + delta, 1);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  }
+
+  function fmt(n) {
+    var v = Number(n) || 0;
+    return v.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+
+  function loadJSON(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) { return fallback; }
+  }
+
+  function saveJSON(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  }
+
+  function seedIfEmpty() {
+    if (!localStorage.getItem("ledger:seeded")) {
+      saveJSON("ledger:categories", DEFAULT_CATEGORIES);
+      var targets = {};
+      DEFAULT_CATEGORIES.forEach(function (c) { targets[c.id] = c.target; });
+      HISTORICAL_MONTHS.forEach(function (monthKey, idx) {
+        var entries = {};
+        Object.keys(HISTORICAL_ACTUALS).forEach(function (catId) {
+          entries[catId] = HISTORICAL_ACTUALS[catId][idx];
+        });
+        saveJSON("ledger:month:" + monthKey, { entries: entries, targets: targets });
+      });
+      localStorage.setItem("ledger:seeded", "1");
+    }
+  }
+
+  function listMonthKeys() {
+    var keys = [];
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf("ledger:month:") === 0) keys.push(k.slice("ledger:month:".length));
+    }
+    return keys;
+  }
+
+  // ---- app state ----
+  var state = {
+    categories: [],
+    tab: "track",
+    monthKey: currentMonthKey(),
+    entries: {}
+  };
+
+  var savedTimer = null;
+  function pulseSaved() {
+    var el = document.getElementById("savedIndicator");
+    el.classList.add("show");
+    clearTimeout(savedTimer);
+    savedTimer = setTimeout(function () { el.classList.remove("show"); }, 1400);
+  }
+
+  function persistCategories() {
+    saveJSON("ledger:categories", state.categories);
+    pulseSaved();
+  }
+
+  function loadMonthEntries() {
+    var data = loadJSON("ledger:month:" + state.monthKey, null);
+    state.entries = data ? (data.entries || {}) : {};
+  }
+
+  function updateEntry(catId, value) {
+    state.entries[catId] = value;
+    var targets = {};
+    state.categories.forEach(function (c) { targets[c.id] = c.target; });
+    saveJSON("ledger:month:" + state.monthKey, { entries: state.entries, targets: targets });
+    pulseSaved();
+    renderBody();
+  }
+
+  function addCategory() {
+    state.categories.push({ id: uid(), name: "New category", target: 0 });
+    persistCategories();
+    renderBody();
+  }
+
+  function removeCategory(id) {
+    state.categories = state.categories.filter(function (c) { return c.id !== id; });
+    persistCategories();
+    renderBody();
+  }
+
+  function computeHistory() {
+    return listMonthKeys().map(function (k) {
+      var data = loadJSON("ledger:month:" + k, null);
+      if (!data) return null;
+      var targets = data.targets || {};
+      var ents = data.entries || {};
+      var targetTotal = 0, actualTotal = 0;
+      Object.keys(targets).forEach(function (id) { targetTotal += Number(targets[id]) || 0; });
+      Object.keys(ents).forEach(function (id) { actualTotal += Number(ents[id]) || 0; });
+      return { key: k, targetTotal: targetTotal, actualTotal: actualTotal };
+    }).filter(Boolean).sort(function (a, b) { return a.key < b.key ? 1 : -1; });
+  }
+
+  function renderTabs() {
+    document.querySelectorAll(".bt-tab").forEach(function (btn) {
+      btn.classList.toggle("active", btn.dataset.tab === state.tab);
+    });
+  }
+
+  function renderTrack() {
+    var totalTarget = state.categories.reduce(function (s, c) { return s + (Number(c.target) || 0); }, 0);
+    var totalActual = state.categories.reduce(function (s, c) { return s + (Number(state.entries[c.id]) || 0); }, 0);
+    var diff = totalTarget - totalActual;
+    var isUnder = diff >= 0;
+
+    var html = '';
+    html += '<div class="bt-monthnav">';
+    html += '<button id="prevMonth">' + ICONS.chevronLeft + '</button>';
+    html += '<div class="bt-monthname">' + monthLabel(state.monthKey) + '</div>';
+    html += '<button id="nextMonth">' + ICONS.chevronRight + '</button>';
+    html += '</div>';
+
+    html += '<div class="bt-stampwrap">';
+    if (totalActual > 0) {
+      html += '<div class="bt-stamp ' + (isUnder ? '' : 'over') + '">' +
+        (isUnder ? 'UNDER BUDGET' : 'OVER BUDGET') + ' &middot; <span class="amt">$' + fmt(Math.abs(diff)) + '</span></div>';
+    }
+    html += '</div>';
+
+    state.categories.forEach(function (c) {
+      var actual = Number(state.entries[c.id]) || 0;
+      var target = Number(c.target) || 0;
+      var pct = target > 0 ? Math.min((actual / target) * 100, 100) : (actual > 0 ? 100 : 0);
+      var over = target > 0 && actual > target;
+      html += '<div class="bt-row">';
+      html += '<div>';
+      html += '<div class="bt-catname">' + escapeHtml(c.name) + '</div>';
+      html += '<div class="bt-catmeta">target $' + fmt(target) + '</div>';
+      html += '<div class="bt-bar"><div class="bt-bar-fill ' + (over ? 'over' : 'under') + '" style="width:' + pct + '%"></div></div>';
+      html += '</div>';
+      html += '<div class="bt-inputwrap"><span class="cur">$</span>';
+      html += '<input class="bt-input entry-input" data-id="' + c.id + '" type="number" inputmode="decimal" placeholder="0" value="' + (state.entries[c.id] != null ? state.entries[c.id] : '') + '" /></div>';
+      html += '</div>';
+    });
+
+    html += '<div class="bt-totalrow"><div class="bt-catname">Total &middot; target $' + fmt(totalTarget) + '</div>';
+    html += '<div class="bt-totalval" style="color:' + (isUnder ? 'var(--gold)' : 'var(--rust)') + '">$' + fmt(totalActual) + '</div></div>';
+
+    return html;
+  }
+
+  function renderTargets() {
+    var html = '';
+    state.categories.forEach(function (c) {
+      html += '<div class="bt-targetrow">';
+      html += '<input class="name target-name" data-id="' + c.id + '" value="' + escapeHtml(c.name) + '" />';
+      html += '<div class="bt-inputwrap"><span class="cur">$</span>';
+      html += '<input class="bt-input target-amount" data-id="' + c.id + '" type="number" value="' + c.target + '" /></div>';
+      html += '<button class="bt-delbtn remove-cat" data-id="' + c.id + '">' + ICONS.trash + '</button>';
+      html += '</div>';
+    });
+    html += '<button class="bt-addbtn" id="addCategory">' + ICONS.plus + ' Add category</button>';
+    return html;
+  }
+
+  function renderHistory() {
+    var rows = computeHistory();
+    if (rows.length === 0) return '<div class="bt-histempty">No months logged yet.</div>';
+    var html = '<div class="bt-histrow head"><div>Month</div><div></div><div class="mono">Target</div><div class="mono">Actual</div><div class="mono">Diff</div></div>';
+    rows.forEach(function (h) {
+      var d = h.targetTotal - h.actualTotal;
+      var under = d >= 0;
+      var pct = h.targetTotal > 0 ? Math.min((h.actualTotal / h.targetTotal) * 100, 100) : 0;
+      html += '<div class="bt-histrow">';
+      html += '<div>' + monthLabel(h.key) + '</div>';
+      html += '<div class="bt-histbar"><div class="bt-histbar-fill" style="width:' + pct + '%;background:' + (under ? 'var(--gold-dim)' : 'var(--rust)') + '"></div></div>';
+      html += '<div class="mono">$' + fmt(h.targetTotal) + '</div>';
+      html += '<div class="mono">$' + fmt(h.actualTotal) + '</div>';
+      html += '<div class="mono" style="color:' + (under ? 'var(--gold)' : 'var(--rust)') + '">' + (under ? '+' : '-') + '$' + fmt(Math.abs(d)) + '</div>';
+      html += '</div>';
+    });
+    return html;
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function renderBody() {
+    var body = document.getElementById("body");
+    if (state.tab === "track") body.innerHTML = renderTrack();
+    else if (state.tab === "targets") body.innerHTML = renderTargets();
+    else body.innerHTML = renderHistory();
+    renderTabs();
+    attachBodyListeners();
+  }
+
+  function attachBodyListeners() {
+    if (state.tab === "track") {
+      var prev = document.getElementById("prevMonth");
+      var next = document.getElementById("nextMonth");
+      if (prev) prev.addEventListener("click", function () {
+        state.monthKey = shiftMonth(state.monthKey, -1);
+        loadMonthEntries();
+        renderBody();
+      });
+      if (next) next.addEventListener("click", function () {
+        state.monthKey = shiftMonth(state.monthKey, 1);
+        loadMonthEntries();
+        renderBody();
+      });
+      document.querySelectorAll(".entry-input").forEach(function (input) {
+        input.addEventListener("input", function () {
+          updateEntry(input.dataset.id, input.value);
+        });
+      });
+    } else if (state.tab === "targets") {
+      document.querySelectorAll(".target-name").forEach(function (input) {
+        input.addEventListener("blur", function () {
+          var cat = state.categories.find(function (c) { return c.id === input.dataset.id; });
+          if (cat) cat.name = input.value;
+          persistCategories();
+        });
+      });
+      document.querySelectorAll(".target-amount").forEach(function (input) {
+        input.addEventListener("blur", function () {
+          var cat = state.categories.find(function (c) { return c.id === input.dataset.id; });
+          if (cat) cat.target = input.value;
+          persistCategories();
+          renderBody();
+        });
+      });
+      document.querySelectorAll(".remove-cat").forEach(function (btn) {
+        btn.addEventListener("click", function () { removeCategory(btn.dataset.id); });
+      });
+      var addBtn = document.getElementById("addCategory");
+      if (addBtn) addBtn.addEventListener("click", addCategory);
+    }
+  }
+
+  document.querySelectorAll(".bt-tab").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      state.tab = btn.dataset.tab;
+      renderBody();
+    });
+  });
+
+  // ---- init ----
+  seedIfEmpty();
+  state.categories = loadJSON("ledger:categories", DEFAULT_CATEGORIES);
+  loadMonthEntries();
+  renderBody();
+</script>
+</body>
+</html>
